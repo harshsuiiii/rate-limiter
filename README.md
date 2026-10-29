@@ -19,16 +19,16 @@ You can use it two ways:
 
 ```mermaid
 flowchart TB
-    C1[Client apps / API gateways] --> LB[Load balancer]
-    LB --> A[Limiter replica A]
-    LB --> B[Limiter replica B]
-    LB --> N[Limiter replica N]
-    A -- "EVALSHA (atomic Lua)" --> R[(Redis / Redis Cluster)]
-    B -- "EVALSHA (atomic Lua)" --> R
-    N -- "EVALSHA (atomic Lua)" --> R
-    P[Prometheus] -. "scrapes /metrics" .-> A
-    P -. "scrapes /metrics" .-> B
-    P -. "scrapes /metrics" .-> N
+    CL["Client apps and API gateways"] --> LB["Load balancer"]
+    LB --> RA["Limiter replica A"]
+    LB --> RB["Limiter replica B"]
+    LB --> RN["Limiter replica N"]
+    RA -->|atomic Lua script| DB[("Redis or Redis Cluster")]
+    RB -->|atomic Lua script| DB
+    RN -->|atomic Lua script| DB
+    PM["Prometheus"] -.->|scrape metrics| RA
+    PM -.->|scrape metrics| RB
+    PM -.->|scrape metrics| RN
 ```
 
 - **Replicas are stateless.** All authoritative state lives in Redis, so you scale by adding replicas. Each replica holds only a short-lived denial cache and a fallback store used during outages.
