@@ -1,0 +1,45 @@
+{
+  "name": "distributed-rate-limiter",
+  "version": "1.0.0",
+  "description": "Production-grade distributed rate limiter backed by Redis (token bucket, sliding window, fixed window) with an HTTP decision service and Node middleware.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "dev": "tsx watch src/main.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run --exclude \"test/**/*.redis.test.ts\"",
+    "test:watch": "vitest",
+    "redis:up": "docker run -d --name rl-redis -p 6379:6379 redis:7.4-alpine",
+    "redis:down": "docker rm -f rl-redis"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "fastify": "^5.12.7",
+    "ioredis": "^5.11.1",
+    "prom-client": "^15.1.3",
+    "yaml": "^2.9.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

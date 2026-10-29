@@ -1,0 +1,36 @@
+# Local distributed setup: two limiter replicas sharing one Redis.
+#   docker compose up --build
+#   curl -s localhost:8081/v1/check -H 'content-type: application/json' -d '{"rule":"login-attempts","key":"alice"}'
+#   curl -s localhost:8082/v1/check -H 'content-type: application/json' -d '{"rule":"login-attempts","key":"alice"}'
+# Both replicas draw from the same quota.
+
+x-limiter: &limiter
+  build: .
+  environment:
+    REDIS_URL: redis://redis:6379
+    LOG_LEVEL: info
+    FAIL_MODE: local
+  depends_on:
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  redis:
+    image: redis:7.4-alpine
+    # Every limiter key carries a TTL, so volatile-ttl evicts the keys closest to
+    # expiring first if memory runs out: the least harmful thing to forget.
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "volatile-ttl"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  limiter-a:
+    <<: *limiter
+    ports: ["8081:8080"]
+
+  limiter-b:
+    <<: *limiter
+    ports: ["8082:8080"]

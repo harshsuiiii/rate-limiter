@@ -1,0 +1,52 @@
+# Rate limiter service configuration.
+# Environment variables override these values (see README): PORT, HOST, LOG_LEVEL,
+# API_TOKEN, REDIS_URL, REDIS_CLUSTER_NODES, REDIS_KEY_PREFIX, FAIL_MODE, STORE_TIMEOUT_MS.
+# Keep secrets (API_TOKEN, Redis passwords) in the environment, not in this file.
+
+server:
+  port: 8080
+  logLevel: info
+  shutdownTimeoutMs: 10000
+
+redis:
+  url: redis://localhost:6379
+  keyPrefix: rl
+  # server: use Redis TIME (immune to app-node clock skew). client: trust app clocks.
+  clock: server
+
+limiter:
+  # local  -> per-node in-memory limits while Redis is unavailable (default)
+  # open   -> admit everything while Redis is unavailable
+  # closed -> reject everything while Redis is unavailable
+  failMode: local
+  timeoutMs: 100
+  denyCache: true
+  circuitBreaker:
+    failureThreshold: 5
+    cooldownMs: 5s
+
+rules:
+  # Smooth per-client API limit: 100 req/min sustained, bursts of up to 20 extra.
+  - name: api-per-ip
+    algorithm: token-bucket
+    limit: 100
+    window: 1m
+    burst: 120
+
+  # Per-user hourly quota with an accurate rolling window and O(1) memory.
+  - name: api-per-user
+    algorithm: sliding-window
+    limit: 5000
+    window: 1h
+
+  # Strict, exact limit on a sensitive endpoint (low limit, so sliding-log memory is small).
+  - name: login-attempts
+    algorithm: sliding-log
+    limit: 5
+    window: 15m
+
+  # Cheap daily quota aligned to UTC days.
+  - name: export-daily
+    algorithm: fixed-window
+    limit: 50
+    window: 1d
